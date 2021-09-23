@@ -3,38 +3,46 @@ package server;
 import java.util.Arrays;
 
 public class Database {
-    String[] array = new String[100];
-    String updated = "OK";
-    String error = "ERROR";
+    private final String[] database = new String[1000];
+    private String storedDatabaseValue = "";
 
     public Database() {
-        Arrays.fill(array, "");
+        Arrays.fill(database, "");
     }
 
-    public String set(int position, String value) {
-        if (checkPosition(position)) {
-            array[position] = value;
-            return updated;
+    public boolean set(int index, String value) {
+        if (isIndexLocatedInDatabase(index)) {
+            database[index] = value;
+            return true;
         }
-        return error;
+        return false;
     }
 
-    public String get(int position) {
-        if (checkPosition(position) && !array[position].isEmpty()) {
-            return array[position];
+    public boolean get(int index) {
+        if (isIndexLocatedInDatabase(index) && !isIndexValueEmpty(index)) {
+            storedDatabaseValue = database[index];
+            return true;
         }
-        return error;
+        return false;
     }
 
-    public String delete(int position) {
-        if (checkPosition(position)) {
-            array[position] = "";
-            return updated;
+    public boolean delete(int index) {
+        if (isIndexLocatedInDatabase(index)) {
+            database[index] = "";
+            return true;
         }
-        return error;
+        return false;
     }
 
-    private boolean checkPosition(int position) {
-        return position >= 0 && position < array.length;
+    public String getStoredDatabaseValue() {
+        return storedDatabaseValue;
+    }
+
+    private boolean isIndexLocatedInDatabase(int index) {
+        return index >= 0 && index < database.length;
+    }
+
+    private boolean isIndexValueEmpty(int index) {
+        return database[index].isEmpty();
     }
 }
