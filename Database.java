@@ -1,34 +1,28 @@
 package server;
 
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Database {
-    private final String[] database = new String[1000];
+    private final Map<String, String> JSON_PAIRS = new HashMap<>();
     private String storedDatabaseValue = "";
 
-    public Database() {
-        Arrays.fill(database, "");
+    public boolean set(String key, String value) {
+        JSON_PAIRS.put(key, value);
+        return true;
     }
 
-    public boolean set(int index, String value) {
-        if (isIndexLocatedInDatabase(index)) {
-            database[index] = value;
+    public boolean get(String key) {
+        if (JSON_PAIRS.containsKey(key)) {
+            storedDatabaseValue = JSON_PAIRS.get(key);
             return true;
         }
         return false;
     }
 
-    public boolean get(int index) {
-        if (isIndexLocatedInDatabase(index) && !isIndexValueEmpty(index)) {
-            storedDatabaseValue = database[index];
-            return true;
-        }
-        return false;
-    }
-
-    public boolean delete(int index) {
-        if (isIndexLocatedInDatabase(index)) {
-            database[index] = "";
+    public boolean delete(String key) {
+        if (JSON_PAIRS.containsKey(key)) {
+            JSON_PAIRS.remove(key);
             return true;
         }
         return false;
@@ -36,13 +30,5 @@ public class Database {
 
     public String getStoredDatabaseValue() {
         return storedDatabaseValue;
-    }
-
-    private boolean isIndexLocatedInDatabase(int index) {
-        return index >= 0 && index < database.length;
-    }
-
-    private boolean isIndexValueEmpty(int index) {
-        return database[index].isEmpty();
     }
 }

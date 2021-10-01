@@ -4,16 +4,16 @@ import server.Database;
 
 public class GetCommand extends Command {
 
-    public GetCommand(Database database, int index) {
-        super(database, index);
+    public GetCommand(Database database, String key) {
+        super(database, key);
     }
 
     @Override
     public boolean execute() {
-        boolean temp = database.get(index);
-        if (temp) {
+        if (database.get(key)) {
             storedDatabaseValue = database.getStoredDatabaseValue();
+            return true;
         }
-        return temp;
+        return false;
     }
 }

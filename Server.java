@@ -29,24 +29,22 @@ public class Server {
                      DataInputStream input = new DataInputStream(socket.getInputStream());
                      DataOutputStream output = new DataOutputStream(socket.getOutputStream())) {
 
-                    String commandInput = input.readUTF();
-                    System.out.printf("Received: %s\n", commandInput);
+                    String jsonCommand = input.readUTF();
+                    System.out.printf("Received: %s\n", jsonCommand);
 
-                    String commandOutput = getCommandOutputFromCommandInput(commandInput);
-                    output.writeUTF(commandOutput);
-                    System.out.printf("Sent: %s\n", commandOutput);
+                    String jsonOutput = getJSONOutputFromJSONCommand(jsonCommand);
+                    output.writeUTF(jsonOutput);
+                    System.out.printf("Sent: %s\n", jsonOutput);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    private String getCommandOutputFromCommandInput(String commandInput) {
-        if ("exit".equals(commandInput)) {
+    private String getJSONOutputFromJSONCommand(String jsonCommand) {
+        if (jsonCommand.startsWith("{\"type\":\"exit\"")) {
             exit = true;
-            return "OK";
-        } else {
-            return application.executeCommandAndReturnOutput(commandInput);
         }
+        return application.executeCommandAndReturnJSONOutput(jsonCommand);
     }
 }

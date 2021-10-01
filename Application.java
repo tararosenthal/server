@@ -1,93 +1,73 @@
 package server;
 
+import com.google.gson.Gson;
 import server.command.*;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Application {
     private final Database database;
-    private String commandTypeAsString;
-    private int index;
-    private String value;
+    Gson gson = new Gson();
 
     public Application(Database database) {
         this.database = database;
     }
 
-    public String executeCommandAndReturnOutput(String commandInput) {
-        parseCommandComponentsFromInput(commandInput);
-        CommandType commandType = getCommandType();
-        if (!CommandType.INVALID.equals(commandType)) {
-            Command command = getCommandByCommandType(commandType);
-            assert command != null;
-            if (command.execute()) {
-                if (command.getStoredDatabaseValue().isEmpty()) {
-                    return "OK";
-                } else {
-                    return command.getStoredDatabaseValue();
+    public String executeCommandAndReturnJSONOutput(String jsonCommand) {
+        CommandParameters commandParameters = gson.fromJson(jsonCommand, CommandParameters.class);
+
+        if ("exit".equals(commandParameters.getType())) {
+            return buildJSONOutput(true, "");
+        } else {
+            Command command = getCommandFromCommandParameters(commandParameters);
+            if (command != null) {
+                if (command.execute()) {
+                    return buildJSONOutput(true, command.getStoredDatabaseValue());
                 }
+                return buildJSONOutput(false, "No such key");
             }
+            return buildJSONOutput(false, "Invalid command type");
         }
-        return "ERROR";
     }
 
-    private void parseCommandComponentsFromInput(String commandInput) {
-        String[] array = commandInput.split(" ", 3);
-        if (array.length > 0) {
-            commandTypeAsString = Objects.requireNonNull(array[0]);
+    private Command getCommandFromCommandParameters(CommandParameters commandParameters) {
+       switch (Objects.requireNonNullElse(
+               commandParameters.getType(), "")) {
+           case "get":
+               return new GetCommand(database, Objects.requireNonNullElse(
+                       commandParameters.getKey(), ""));
+           case "set":
+               return new SetCommand(database, Objects.requireNonNullElse(
+                       commandParameters.getKey(), ""), Objects.requireNonNullElse(
+                               commandParameters.getValue(), ""));
+           case "delete":
+               return new DeleteCommand(database, Objects.requireNonNullElse(
+                       commandParameters.getKey(), ""));
+           default:
+               return null;
+       }
+    }
+
+    private String buildJSONOutput(boolean isExecuted, String parameter) {
+        JSONOutput jsonOutput;
+        JSONOutput.Builder builder = new JSONOutput.Builder();
+
+        if (isExecuted && !parameter.isEmpty()) {
+            jsonOutput = builder
+                    .setResponse(true)
+                    .setValue(parameter)
+                    .build();
+        } else if (isExecuted) {
+            jsonOutput = builder
+                    .setResponse(true)
+                    .build();
         } else {
-            commandTypeAsString = "";
+            jsonOutput = builder
+                    .setResponse(false)
+                    .setReason(parameter)
+                    .build();
         }
-        if (array.length > 1) {
-            index = Integer.parseInt(array[1]) - 1;
-        } else {
-            index = -1;
-        }
-        if (array.length > 2) {
-            value = Objects.requireNonNull(array[2]);
-        } else {
-            value = "";
-        }
-    }
 
-    private CommandType getCommandType() {
-        HashMap<Pattern, CommandType> map = createCommandTypeMatchingMap();
-        Matcher matcher;
-        for (Map.Entry<Pattern, CommandType> entry: map.entrySet()) {
-            matcher = entry.getKey().matcher(commandTypeAsString);
-            if (matcher.matches()) {
-                return entry.getValue();
-            }
-        }
-        return CommandType.INVALID;
-    }
-
-    private Command getCommandByCommandType(CommandType commandType) {
-        switch (commandType) {
-            case GET:
-                return new GetCommand(database, index);
-            case DELETE:
-                return new DeleteCommand(database, index);
-            case SET:
-                return new SetCommand(database, index, value);
-        }
-        return null;
-    }
-
-    private HashMap<Pattern, CommandType> createCommandTypeMatchingMap() {
-        Pattern get = Pattern.compile("(get)");
-        Pattern delete = Pattern.compile("(delete)");
-        Pattern set = Pattern.compile("(set)");
-
-        HashMap<Pattern, CommandType> map = new HashMap<>();
-        map.put(get, CommandType.GET);
-        map.put(set, CommandType.SET);
-        map.put(delete, CommandType.DELETE);
-
-        return map;
+        return jsonOutput.getOutput();
     }
 }

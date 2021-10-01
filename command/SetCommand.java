@@ -4,12 +4,12 @@ import server.Database;
 
 public class SetCommand extends Command {
 
-    public SetCommand(Database database, int index, String value) {
-        super(database, index, value);
+    public SetCommand(Database database, String key, String value) {
+        super(database, key, value);
     }
 
     @Override
     public boolean execute() {
-        return database.set(index, value);
+        return database.set(key, value);
     }
 }
