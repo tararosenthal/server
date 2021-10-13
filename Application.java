@@ -7,67 +7,56 @@ import java.util.Objects;
 
 public class Application {
     private final Database database;
-    Gson gson = new Gson();
 
     public Application(Database database) {
         this.database = database;
     }
 
-    public String executeCommandAndReturnJSONOutput(String jsonCommand) {
-        CommandParameters commandParameters = gson.fromJson(jsonCommand, CommandParameters.class);
+    public String executeJSONRequestAndReturnJSONResponse(String jsonRequest) {
+        Gson gson = new Gson();
+        RequestParameters requestParameters = gson.fromJson(jsonRequest, RequestParameters.class);
 
-        if ("exit".equals(commandParameters.getType())) {
-            return buildJSONOutput(true, "");
+        if ("exit".equals(requestParameters.getType())) {
+            return buildJSONResponse(true, "");
         } else {
-            Command command = getCommandFromCommandParameters(commandParameters);
+            Command command = getCommandFromRequestParameters(requestParameters);
             if (command != null) {
                 if (command.execute()) {
-                    return buildJSONOutput(true, command.getStoredDatabaseValue());
+                    return buildJSONResponse(true, command.getStoredDatabaseValue());
                 }
-                return buildJSONOutput(false, "No such key");
+                return buildJSONResponse(false, "No such key");
             }
-            return buildJSONOutput(false, "Invalid command type");
+            return buildJSONResponse(false, "Invalid command type");
         }
     }
 
-    private Command getCommandFromCommandParameters(CommandParameters commandParameters) {
+    private Command getCommandFromRequestParameters(RequestParameters requestParameters) {
        switch (Objects.requireNonNullElse(
-               commandParameters.getType(), "")) {
+               requestParameters.getType(), "")) {
            case "get":
                return new GetCommand(database, Objects.requireNonNullElse(
-                       commandParameters.getKey(), ""));
+                       requestParameters.getKey(), ""));
            case "set":
                return new SetCommand(database, Objects.requireNonNullElse(
-                       commandParameters.getKey(), ""), Objects.requireNonNullElse(
-                               commandParameters.getValue(), ""));
+                       requestParameters.getKey(), ""), Objects.requireNonNullElse(
+                               requestParameters.getValue(), ""));
            case "delete":
                return new DeleteCommand(database, Objects.requireNonNullElse(
-                       commandParameters.getKey(), ""));
+                       requestParameters.getKey(), ""));
            default:
                return null;
        }
     }
 
-    private String buildJSONOutput(boolean isExecuted, String parameter) {
-        JSONOutput jsonOutput;
-        JSONOutput.Builder builder = new JSONOutput.Builder();
+    private String buildJSONResponse(boolean isRequestExecuted, String responseParameter) {
+        JSONResponse.Builder builder = new JSONResponse.Builder()
+                .isRequestExecuted(isRequestExecuted);
 
-        if (isExecuted && !parameter.isEmpty()) {
-            jsonOutput = builder
-                    .setResponse(true)
-                    .setValue(parameter)
-                    .build();
-        } else if (isExecuted) {
-            jsonOutput = builder
-                    .setResponse(true)
-                    .build();
-        } else {
-            jsonOutput = builder
-                    .setResponse(false)
-                    .setReason(parameter)
-                    .build();
+        if (!responseParameter.isEmpty()) {
+            builder = builder.setResponseParameter(responseParameter);
         }
 
-        return jsonOutput.getOutput();
+        JSONResponse jsonResponse = builder.build();
+        return jsonResponse.getOutput();
     }
 }
